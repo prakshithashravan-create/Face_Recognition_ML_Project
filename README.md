@@ -1,133 +1,139 @@
 # Face Recognition Attendance Management System
 
-A personal learning project exploring Python desktop development, computer vision, LBPH face recognition, and SQLite-based attendance records.
+A Python desktop application that explores face detection, LBPH-based face recognition, and attendance tracking with SQLite. Built as a hands-on learning project using OpenCV and Tkinter.
 
-> **Project status:** Refactoring in progress. The original application is retained as `faceold.py` for reference. The modular implementation is under `src/`. The new implementation is educational and has not yet been validated with a complete real-world dataset or calibrated recognition threshold.
+[![CI](https://github.com/prakshithashravan-create/Face_Recognition_ML_Project/actions/workflows/ci.yml/badge.svg)](https://github.com/prakshithashravan-create/Face_Recognition_ML_Project/actions/workflows/ci.yml)
 
-## Features in the refactored version
+## Project overview
 
-- Tkinter interface for student registration and viewing registered students.
-- SQLite persistence with parameterized SQL statements and managed connections.
+The application provides a small desktop workflow to register students, train a local face-recognition model from consented sample images, and record attendance against a subject. The code is organized into separate UI, recognition, training, and persistence modules.
+
+**Project maturity:** portfolio / learning project. The automated tests cover database behavior. The webcam and recognition workflow still requires local validation with a real camera and representative images; the recognition threshold is configurable and has not been scientifically calibrated. This is not a production biometric or access-control system.
+
+## Features
+
+- Student registration and student-list view through a Tkinter desktop UI.
+- SQLite persistence with parameterized queries, transaction handling, and referential integrity.
 - Haar-cascade face detection and OpenCV LBPH recognition.
-- Webcam-based attendance capture.
-- Duplicate prevention: one attendance record per student, subject, and calendar date.
-- Optional SMTP helper that reads credentials from environment variables rather than source code.
-- Separate model-training script for locally supplied face images.
+- Local model training from images organized by numeric student ID.
+- Webcam-based attendance capture with duplicate prevention per student, subject, and date.
+- SMTP helper that reads credentials from environment variables (not embedded in source).
+- Automated database unit tests and GitHub Actions CI.
+
+## Architecture
+
+```text
+src/
+  main.py             Tkinter user interface and application flow
+  database.py         SQLite schema and data-access functions
+  recognition.py      Haar detection and LBPH prediction
+  email_service.py    Optional SMTP utility
+scripts/
+  train_model.py      Local LBPH model-training command
+tests/
+  test_database.py    Database behavior tests
+assets/               Local Haar cascade XML (not committed)
+dataset/              Local face images (not committed)
+models/               Generated LBPH model (not committed)
+```
+
+The UI calls the database and recognition modules; model training is a separate command. Local biometric images and generated model files are deliberately excluded from version control.
 
 ## Technology stack
 
-| Technology | Purpose |
+| Technology | Use |
 |---|---|
-| Python | Application logic |
-| OpenCV contrib | Haar-cascade detection and LBPH recognition |
-| NumPy | Training labels and numerical data |
-| Tkinter / ttk | Desktop interface |
-| SQLite | Student and attendance storage |
-| Pillow | Image handling dependency for future UI enhancements |
-| SMTP | Optional email integration |
+| Python 3.10+ | Application and tooling |
+| OpenCV contrib | Haar cascade and LBPH face recognition |
+| NumPy | Training labels and image arrays |
+| Tkinter / ttk | Desktop user interface |
+| SQLite | Local relational data storage |
+| pytest | Automated database tests |
+| GitHub Actions | Continuous integration |
 
-## Repository structure
+## Quick start (Windows)
 
-```text
-.
-├── src/
-│   ├── database.py       # SQLite schema and data access
-│   ├── email_service.py  # Optional SMTP helper
-│   ├── main.py           # Tkinter application
-│   └── recognition.py    # Haar + LBPH recognition service
-├── scripts/
-│   └── train_model.py    # Train LBPH from local face images
-├── assets/               # Add the Haar cascade XML here
-├── dataset/              # Local training images (not committed)
-├── models/               # Generated model files (not committed)
-├── faceold.py            # Original implementation, retained for reference
-├── requirements.txt
-└── README.md
-```
+1. Install Python 3.10 or newer.
+2. Clone the repository and open a terminal in its root directory.
+3. Create and activate a virtual environment:
 
-## Setup
+   ```powershell
+   py -m venv .venv
+   .\.venv\Scripts\Activate.ps1
+   python -m pip install --upgrade pip
+   pip install -r requirements.txt
+   pip install -r requirements-dev.txt
+   ```
 
-### 1. Create and activate a virtual environment
+4. Download the OpenCV Haar cascade XML file and place it at `assets/haarcascade_frontalface_alt2.xml`.
+5. Add consented training images as described below.
+6. Train the model and start the application:
 
-**Windows (PowerShell):**
+   ```powershell
+   python scripts/train_model.py
+   python -m src.main
+   ```
 
-```powershell
-py -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install --upgrade pip
-pip install -r requirements.txt
-```
+The SQLite database is initialized automatically at `data/attendance.db`.
 
-### 2. Add the Haar cascade
+## Prepare the training dataset
 
-Create an `assets` folder and place the OpenCV Haar cascade file at:
-
-```text
-assets/haarcascade_frontalface_alt2.xml
-```
-
-### 3. Add training images
-
-Create one folder per numeric student ID and add clear face images:
+Create one directory per numeric student ID. Use the same ID generated when registering the student in the application.
 
 ```text
 dataset/
-├── 1/
-│   ├── image_01.jpg
-│   └── image_02.jpg
-└── 2/
-    ├── image_01.jpg
-    └── image_02.jpg
+  1/
+    sample_01.jpg
+    sample_02.jpg
+  2/
+    sample_01.jpg
+    sample_02.jpg
 ```
 
-Use the same numeric IDs shown in the application's student list. Obtain consent before collecting or using anyone's face images. The dataset is intentionally excluded from Git.
+Use clear, varied images with one face per image. The training script detects the largest face in each image and skips unreadable images or images with no detected face. Obtain explicit consent before collecting or processing face images. Do not upload face images, student records, database files, or trained model artifacts to this public repository.
 
-### 4. Train the model
+## Run tests
 
 ```powershell
-python scripts/train_model.py
+pytest -q
 ```
 
-The script creates `models/trainer.yml`. The model is a local generated artifact and is not committed.
+The test suite verifies database initialization, student creation, duplicate attendance prevention, and attendance summary behavior. It does not validate camera hardware or recognition accuracy.
 
-### 5. Run the application
+## Configuration
 
-From the repository root:
+The optional SMTP helper reads these environment variables:
 
-```powershell
-python -m src.main
-```
+- `SMTP_HOST` (defaults to `smtp.gmail.com`)
+- `SMTP_PORT` (defaults to `587`)
+- `SMTP_USERNAME`
+- `SMTP_PASSWORD`
 
-The SQLite database is created automatically at `data/attendance.db`.
+Email sending is not currently connected to the desktop UI. Use an app-specific password or an approved SMTP credential; never commit secrets.
 
-## Optional email configuration
+## Design decisions
 
-The SMTP helper is not yet wired into the Tkinter workflow. If you use it from your own integration, set credentials as environment variables instead of placing them in Python source:
+- **Separation of concerns:** UI, persistence, recognition, and model training are kept in distinct modules.
+- **Parameterized SQL:** user-provided values are passed as query parameters.
+- **Local-first data:** SQLite, images, and model artifacts stay on the user's machine by default.
+- **Duplicate protection:** a database uniqueness constraint prevents repeated attendance rows for the same student, subject, and date.
+- **Explicit limitations:** attendance percentages are not calculated because the current schema has no authoritative class-session register.
 
-```powershell
-$env:SMTP_USERNAME="your-account@example.com"
-$env:SMTP_PASSWORD="your-app-password"
-```
+## Known limitations and next steps
 
-Never commit real passwords, app passwords, API keys, student records, face images, or generated model files. If a real credential was previously committed, revoke or rotate it; deleting it from the latest version does not remove it from Git history.
+- No admin/faculty authentication or role-based access control.
+- No in-app image capture / dataset enrollment workflow; training images are prepared locally.
+- No session timetable, so attendance percentages and absence calculations are intentionally not presented.
+- No email-alert workflow in the UI.
+- LBPH thresholds need calibration and evaluation against false-accept / false-reject cases.
+- Biometric data needs a formal consent, retention, encryption, and access-control design before any real deployment.
 
-## Important limitations
+## Privacy and security
 
-- LBPH's returned value is a distance-like score, not a probability. The default threshold is only a starting point and must be calibrated using representative test images.
-- Lighting, camera quality, pose, and training-image quality affect recognition results. Unknown-person rejection must be tested carefully.
-- The attendance percentage requires a proper class-session register to define how many sessions were held. The current schema records attendance dates only and should not be treated as an authoritative academic attendance calculation.
-- The refactored app currently provides basic registration and attendance capture. Role-based admin/faculty authentication, profile management, attendance reporting, and integrated email alerts are not yet implemented in the new UI.
-- This is a learning project, not a production biometric or access-control system. Apply consent, data minimization, secure storage, retention, and access controls before any real deployment.
+This project handles biometric data, which is sensitive. Use only images for which you have permission. Keep the dataset, SQLite database, and trained model on a secured local machine. The repository ignores these files by default. Do not use this project to make consequential decisions about people.
 
-## Learning outcomes
+If a credential was ever committed to Git history, rotating or revoking it is necessary; removing it from the latest file does not erase it from earlier commits.
 
-- Building a Python desktop interface with Tkinter.
-- Separating database, recognition, and UI responsibilities into modules.
-- Using SQLite parameterized queries and transaction handling.
-- Exploring Haar-cascade detection and LBPH face recognition.
-- Training a basic recognition model from local image data.
-- Managing configuration and secrets outside source code.
+## About
 
-## Original implementation
-
-`faceold.py` is retained as a legacy reference. Prefer the modular `src/` implementation for further development. The original version has known design and reliability limitations and should not be treated as production-ready.
+Created as a personal learning project to practice Python application development, computer vision, database operations, and modular code organization.
