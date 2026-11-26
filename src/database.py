@@ -1,4 +1,4 @@
-"""SQLite persistence for students and attendance records."""
+"""SQLite persistence for student records and attendance."""
 from __future__ import annotations
 
 import sqlite3
@@ -12,9 +12,11 @@ DB_PATH = ROOT / "data" / "attendance.db"
 
 @contextmanager
 def connection() -> Iterator[sqlite3.Connection]:
+    """Yield a transactional SQLite connection with foreign keys enabled."""
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA foreign_keys = ON")
     try:
         yield conn
         conn.commit()
@@ -26,6 +28,7 @@ def connection() -> Iterator[sqlite3.Connection]:
 
 
 def initialize_database() -> None:
+    """Create the application schema when it does not already exist."""
     with connection() as conn:
         conn.executescript(
             """
@@ -50,39 +53,54 @@ def initialize_database() -> None:
         )
 
 
-def add_student(first_name: str, last_name: str, email: str = "", course: str = "", year: int | None = None) -> int:
+def add_student(
+    first_name: str,
+    last_name: str,
+    email: str = "",
+    course: str = "",
+    year: int | None = None,
+) -> int:
+    """Create a student and return the generated numeric ID."""
+    first_name, last_name = first_name.strip(), last_name.strip()
+    if not first_name or not last_name:
+        raise ValueError("First name and last name are required.")
+    if year is not None and year < 1:
+        raise ValueError("Year must be a positive integer.")
     with connection() as conn:
         cursor = conn.execute(
             "INSERT INTO students(first_name,last_name,email,course,year) VALUES(?,?,?,?,?)",
-            (first_name.strip(), last_name.strip(), email.strip(), course.strip(), year),
+            (first_name, last_name, email.strip(), course.strip(), year),
         )
         return int(cursor.lastrowid)
 
 
 def list_students() -> list[sqlite3.Row]:
+    """Return students ordered by their numeric ID."""
     with connection() as conn:
         return list(conn.execute("SELECT * FROM students ORDER BY student_id"))
 
 
 def record_attendance(student_id: int, subject: str) -> bool:
-    """Record one attendance per student, subject and calendar date.
+    """Record one attendance per student, subject, and calendar date.
 
-    Returns False when that attendance already exists for today.
+    Returns False if a matching record already exists for today.
     """
+    subject = subject.strip()
+    if not subject:
+        raise ValueError("Subject is required.")
     with connection() as conn:
         cursor = conn.execute(
             "INSERT OR IGNORE INTO attendance(student_id, subject) VALUES(?,?)",
-            (student_id, subject.strip()),
+            (student_id, subject),
         )
         return cursor.rowcount == 1
 
 
 def attendance_summary(student_id: int, subject: str) -> tuple[int, int, float]:
-    """Return attended sessions, recorded sessions, and percentage.
+    """Return attended dates, dates with any attendance, and their ratio.
 
-    The denominator is the number of distinct attendance dates recorded for
-    the subject in this database; a timetable/session register is needed for
-    an authoritative percentage.
+    This is a descriptive ratio, not an academic attendance percentage:
+    a separate class-session register is required for that calculation.
     """
     with connection() as conn:
         attended = conn.execute(
