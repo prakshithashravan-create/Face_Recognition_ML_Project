@@ -1,116 +1,133 @@
-# Face Recognition Based Attendance Management System
+# Face Recognition Attendance Management System
 
-## Project Overview
+A personal learning project exploring Python desktop development, computer vision, LBPH face recognition, and SQLite-based attendance records.
 
-The Face Recognition Based Attendance Management System is a Python desktop application developed as a personal learning project to explore computer vision, machine learning, and database integration.
+> **Project status:** Refactoring in progress. The original application is retained as `faceold.py` for reference. The modular implementation is under `src/`. The new implementation is educational and has not yet been validated with a complete real-world dataset or calibrated recognition threshold.
 
-The application uses facial recognition technology to identify students and automate attendance tracking. It provides separate access for administrators and faculty members, allowing student registration, attendance management, attendance status monitoring, and email notifications.
+## Features in the refactored version
 
-The project aims to reduce manual attendance tracking and demonstrate how Python and OpenCV can be used to build practical real-world applications.
+- Tkinter interface for student registration and viewing registered students.
+- SQLite persistence with parameterized SQL statements and managed connections.
+- Haar-cascade face detection and OpenCV LBPH recognition.
+- Webcam-based attendance capture.
+- Duplicate prevention: one attendance record per student, subject, and calendar date.
+- Optional SMTP helper that reads credentials from environment variables rather than source code.
+- Separate model-training script for locally supplied face images.
 
-## Key Features
+## Technology stack
 
-- **Admin Login:** Secure login interface for administrators.
-- **Faculty Login:** Separate login functionality for faculty members.
-- **Student Registration:** Add and store student information in an SQLite database.
-- **Face Recognition:** Detect and recognize student faces using OpenCV and the LBPH algorithm.
-- **Automated Attendance:** Record student attendance based on facial recognition.
-- **Attendance Monitoring:** View attendance status for individual students and subjects.
-- **Attendance Percentage:** Calculate attendance percentages based on recorded classes.
-- **Email Notifications:** Send email alerts to parents when a student's attendance falls below the defined 75% threshold.
-
-## Technologies Used
-
-| Technology | Application |
+| Technology | Purpose |
 |---|---|
-| Python | Application development |
-| OpenCV | Face detection and recognition |
-| LBPH | Face recognition algorithm |
-| NumPy | Numerical processing |
-| Tkinter | Graphical User Interface |
-| SQLite3 | Database management |
-| Pillow | Image processing |
-| Pickle | Face label serialization |
-| SMTP | Email notifications |
+| Python | Application logic |
+| OpenCV contrib | Haar-cascade detection and LBPH recognition |
+| NumPy | Training labels and numerical data |
+| Tkinter / ttk | Desktop interface |
+| SQLite | Student and attendance storage |
+| Pillow | Image handling dependency for future UI enhancements |
+| SMTP | Optional email integration |
 
-## Application Workflow
-
-1. Administrator or faculty member logs into the application.
-2. Administrator registers student details.
-3. The face recognition model identifies students through a webcam.
-4. Recognized students have their attendance updated in the database.
-5. Faculty members can check attendance percentages for different subjects.
-6. Email notifications can be sent when attendance falls below the defined threshold.
-
-## Project Structure
+## Repository structure
 
 ```text
-Face-Recognition-Attendance-System/
-│
-├── faceold.py
+.
+├── src/
+│   ├── database.py       # SQLite schema and data access
+│   ├── email_service.py  # Optional SMTP helper
+│   ├── main.py           # Tkinter application
+│   └── recognition.py    # Haar + LBPH recognition service
+├── scripts/
+│   └── train_model.py    # Train LBPH from local face images
+├── assets/               # Add the Haar cascade XML here
+├── dataset/              # Local training images (not committed)
+├── models/               # Generated model files (not committed)
+├── faceold.py            # Original implementation, retained for reference
 ├── requirements.txt
-├── README.md
-│
-├── cascade/
-│   └── data/
-│       └── haarcascade_frontalface_alt2.xml
-│
-├── models/
-│   ├── trainer.yml
-│   └── labels.pickle
-│
-└── screenshots/
-    └── application_screenshot.png
+└── README.md
 ```
 
-*Note: The cascade classifier and trained model files are external dependencies referenced by the application. Add them only if you have the appropriate files and permission to share them.*
+## Setup
 
-## Installation and Setup
+### 1. Create and activate a virtual environment
 
-### 1. Clone the repository
+**Windows (PowerShell):**
 
-```bash
-git clone https://github.com/YOUR-USERNAME/Face-Recognition-Attendance-System.git
-```
-
-### 2. Navigate to the project directory
-
-```bash
-cd Face-Recognition-Attendance-System
-```
-
-### 3. Install dependencies
-
-```bash
+```powershell
+py -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-### 4. Configure the required files
+### 2. Add the Haar cascade
 
-Ensure the Haar Cascade XML file, trained LBPH model, and face label file are available in their expected locations.
+Create an `assets` folder and place the OpenCV Haar cascade file at:
 
-Initialize the SQLite database with the required tables before running the application.
+```text
+assets/haarcascade_frontalface_alt2.xml
+```
+
+### 3. Add training images
+
+Create one folder per numeric student ID and add clear face images:
+
+```text
+dataset/
+├── 1/
+│   ├── image_01.jpg
+│   └── image_02.jpg
+└── 2/
+    ├── image_01.jpg
+    └── image_02.jpg
+```
+
+Use the same numeric IDs shown in the application's student list. Obtain consent before collecting or using anyone's face images. The dataset is intentionally excluded from Git.
+
+### 4. Train the model
+
+```powershell
+python scripts/train_model.py
+```
+
+The script creates `models/trainer.yml`. The model is a local generated artifact and is not committed.
 
 ### 5. Run the application
 
-```bash
-python faceold.py
+From the repository root:
+
+```powershell
+python -m src.main
 ```
 
-## Learning Outcomes
+The SQLite database is created automatically at `data/attendance.db`.
 
-Through this project, I explored:
+## Optional email configuration
 
-- Python desktop application development using Tkinter.
-- Face detection and recognition using OpenCV.
-- Fundamentals of the LBPH face recognition algorithm.
-- Integration of Python applications with SQLite databases.
-- Image processing and webcam integration.
-- Email communication using SMTP.
-- Connecting multiple Python libraries to develop an end-to-end application.
+The SMTP helper is not yet wired into the Tkinter workflow. If you use it from your own integration, set credentials as environment variables instead of placing them in Python source:
 
-## Project Purpose
+```powershell
+$env:SMTP_USERNAME="your-account@example.com"
+$env:SMTP_PASSWORD="your-app-password"
+```
 
-This project was developed independently for learning and practical exploration of Python programming, computer vision, and machine learning concepts.
+Never commit real passwords, app passwords, API keys, student records, face images, or generated model files. If a real credential was previously committed, revoke or rotate it; deleting it from the latest version does not remove it from Git history.
 
-**Disclaimer:** This is an educational project and is not intended for production deployment. Face recognition accuracy, biometric data privacy, authentication security, and email credential management require additional improvements before real-world use.
+## Important limitations
+
+- LBPH's returned value is a distance-like score, not a probability. The default threshold is only a starting point and must be calibrated using representative test images.
+- Lighting, camera quality, pose, and training-image quality affect recognition results. Unknown-person rejection must be tested carefully.
+- The attendance percentage requires a proper class-session register to define how many sessions were held. The current schema records attendance dates only and should not be treated as an authoritative academic attendance calculation.
+- The refactored app currently provides basic registration and attendance capture. Role-based admin/faculty authentication, profile management, attendance reporting, and integrated email alerts are not yet implemented in the new UI.
+- This is a learning project, not a production biometric or access-control system. Apply consent, data minimization, secure storage, retention, and access controls before any real deployment.
+
+## Learning outcomes
+
+- Building a Python desktop interface with Tkinter.
+- Separating database, recognition, and UI responsibilities into modules.
+- Using SQLite parameterized queries and transaction handling.
+- Exploring Haar-cascade detection and LBPH face recognition.
+- Training a basic recognition model from local image data.
+- Managing configuration and secrets outside source code.
+
+## Original implementation
+
+`faceold.py` is retained as a legacy reference. Prefer the modular `src/` implementation for further development. The original version has known design and reliability limitations and should not be treated as production-ready.

@@ -1,3 +1,4 @@
+import os
 import tkinter as tk
 import sqlite3
 from PIL import Image,ImageTk
@@ -344,8 +345,11 @@ class SendEmailPage(tk.Frame):
                 c1.execute(find,[p,])
                 result1=c1.fetchone()
                 print(result1)
-                gmail_user = "prakshitha248@gmail.com"
-                gmail_pwd = "iminhome"
+                gmail_user = os.getenv("SMTP_USERNAME")
+                gmail_pwd = os.getenv("SMTP_PASSWORD")
+                if not gmail_user or not gmail_pwd:
+                    tm.showerror("Email configuration", "Set SMTP_USERNAME and SMTP_PASSWORD environment variables.")
+                    return
                 TO = result1[0]
                 SUBJECT = q
                 TEXT=r
@@ -519,8 +523,11 @@ class ViewStatusPage(tk.Frame):
                 c1.execute(find,[p,])
                 result1=c1.fetchone()
                 print(type(result1[0]))
-                gmail_user = "prakshitha248@gmail.com"
-                gmail_pwd = "iminhome"
+                gmail_user = os.getenv("SMTP_USERNAME")
+                gmail_pwd = os.getenv("SMTP_PASSWORD")
+                if not gmail_user or not gmail_pwd:
+                    tm.showerror("Email configuration", "Set SMTP_USERNAME and SMTP_PASSWORD environment variables.")
+                    return
                 TO = result1[0]
                 SUBJECT = "Student Attendence shortage notification"
                 TEXT="Dear parent,\n    With reference to above subject we write to state that your child is having shortage in attendence please make sure he attends classes properlu.\n .\n\nTHANK YOU\n"
